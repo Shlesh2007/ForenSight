@@ -33,8 +33,8 @@ export default function KeyIndicators({ caseId }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      {/* Stat cards — 2-col on mobile, 3-col on sm, 5-col on md+ */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
         <StatCard
           icon={<FileText className="w-5 h-5 text-blue-400" />}
           label="Files Parsed"
@@ -70,19 +70,20 @@ export default function KeyIndicators({ caseId }: Props) {
       </div>
 
       {/* Timeline chart */}
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 md:p-6">
         <h2 className="text-sm font-semibold text-gray-300 mb-4">Events per Hour</h2>
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={160}>
           <BarChart data={indicators.events_per_hour} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
             <XAxis
               dataKey="hour"
-              tick={{ fill: '#6b7280', fontSize: 11 }}
+              tick={{ fill: '#6b7280', fontSize: 10 }}
               axisLine={false}
               tickLine={false}
+              interval={1}
             />
             <YAxis
-              tick={{ fill: '#6b7280', fontSize: 11 }}
+              tick={{ fill: '#6b7280', fontSize: 10 }}
               axisLine={false}
               tickLine={false}
             />

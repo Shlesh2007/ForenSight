@@ -1,10 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Bot, User } from 'lucide-react'
+import { Send, Bot } from 'lucide-react'
 import MessageBubble from './MessageBubble'
 import { mockMessages } from '../../services/mockData'
 import type { Message } from '../../types/copilot'
 
-// Demo responses — replace with real API calls in production
 const DEMO_RESPONSES: Record<string, Partial<Message>> = {
   default: {
     content: 'Based on the evidence in this case, powershell.exe (PID 4821) established an outbound connection to 192.168.1.50:443 at 14:32:11 UTC [E:e4a3f9b2] and subsequently a file named "update.exe" was accessed by curl.exe (PID 5210) [E:e5b812c3]. The process was spawned by cmd.exe (PID 3120) which was itself a child of WINWORD.EXE (PID 2340) [E:e1cc41d4].',
@@ -20,9 +19,14 @@ const DEMO_RESPONSES: Record<string, Partial<Message>> = {
   },
 }
 
-interface Props {
-  caseId: string
-}
+interface Props { caseId: string }
+
+const SUGGESTIONS = [
+  'What did powershell.exe connect to?',
+  'Summarise the timeline for Administrator',
+  'Any persistence mechanisms?',
+  'Files modified after 14:00?',
+]
 
 export default function ChatPanel({ caseId }: Props) {
   const [messages, setMessages] = useState<Message[]>(mockMessages)
@@ -37,54 +41,31 @@ export default function ChatPanel({ caseId }: Props) {
   async function handleSend() {
     const q = input.trim()
     if (!q || loading) return
-
-    const userMsg: Message = {
-      id: `msg-${Date.now()}`,
-      role: 'user',
-      content: q,
-      timestamp: new Date().toISOString(),
-    }
-    setMessages((prev) => [...prev, userMsg])
+    setMessages((prev) => [...prev, { id: `msg-${Date.now()}`, role: 'user', content: q, timestamp: new Date().toISOString() }])
     setInput('')
     setLoading(true)
-
-    // Simulate API latency
     await new Promise((r) => setTimeout(r, 1200))
-
     const demo = DEMO_RESPONSES.default
-    const assistantMsg: Message = {
+    setMessages((prev) => [...prev, {
       id: `msg-${Date.now() + 1}`,
       role: 'assistant',
       content: demo.content!,
       segments: demo.segments as Message['segments'],
       intent: 'factual',
       timestamp: new Date().toISOString(),
-    }
-    setMessages((prev) => [...prev, assistantMsg])
+    }])
     setLoading(false)
   }
 
   function handleKey(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
   }
 
-  const SUGGESTIONS = [
-    'What did powershell.exe connect to?',
-    'Summarise the timeline for Administrator',
-    'Are there any persistence mechanisms?',
-    'What files were modified after 14:00?',
-  ]
-
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)] max-w-4xl mx-auto w-full">
+    <div className="flex flex-col h-[calc(100dvh-120px)] max-w-4xl mx-auto w-full">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-6 py-6 space-y-4">
-        {messages.map((msg) => (
-          <MessageBubble key={msg.id} message={msg} />
-        ))}
+      <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-6 space-y-4">
+        {messages.map((msg) => <MessageBubble key={msg.id} message={msg} />)}
         {loading && (
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-navy-700 flex items-center justify-center flex-shrink-0">
@@ -92,9 +73,9 @@ export default function ChatPanel({ caseId }: Props) {
             </div>
             <div className="bg-gray-900 border border-gray-800 rounded-2xl rounded-tl-sm px-4 py-3">
               <div className="flex gap-1">
-                <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                {[0, 150, 300].map((d) => (
+                  <span key={d} className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                ))}
               </div>
             </div>
           </div>
@@ -102,15 +83,18 @@ export default function ChatPanel({ caseId }: Props) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Suggestions */}
+      {/* Suggestions — 2 on mobile, 4 on desktop */}
       {messages.length <= 1 && (
-        <div className="px-6 pb-3 flex flex-wrap gap-2">
+        <div className="px-4 md:px-6 pb-3 flex flex-wrap gap-2">
+          {SUGGESTIONS.slice(0, 2).map((s) => (
+            <button key={s} onClick={() => setInput(s)}
+              className="text-xs bg-gray-900 border border-gray-700 hover:border-navy-500 text-gray-400 hover:text-gray-200 px-3 py-2 rounded-full transition-colors md:hidden">
+              {s}
+            </button>
+          ))}
           {SUGGESTIONS.map((s) => (
-            <button
-              key={s}
-              onClick={() => setInput(s)}
-              className="text-xs bg-gray-900 border border-gray-700 hover:border-navy-500 text-gray-400 hover:text-gray-200 px-3 py-1.5 rounded-full transition-colors"
-            >
+            <button key={s} onClick={() => setInput(s)}
+              className="text-xs bg-gray-900 border border-gray-700 hover:border-navy-500 text-gray-400 hover:text-gray-200 px-3 py-1.5 rounded-full transition-colors hidden md:block">
               {s}
             </button>
           ))}
@@ -118,7 +102,7 @@ export default function ChatPanel({ caseId }: Props) {
       )}
 
       {/* Input */}
-      <div className="px-6 pb-6">
+      <div className="px-4 md:px-6 pb-4 md:pb-6">
         <div className="flex items-end gap-3 bg-gray-900 border border-gray-700 focus-within:border-navy-500 rounded-2xl px-4 py-3 transition-colors">
           <textarea
             className="flex-1 bg-transparent text-sm text-white placeholder-gray-500 resize-none focus:outline-none max-h-32 min-h-[24px]"
@@ -131,12 +115,12 @@ export default function ChatPanel({ caseId }: Props) {
           <button
             onClick={handleSend}
             disabled={!input.trim() || loading}
-            className="w-8 h-8 rounded-lg bg-navy-700 hover:bg-navy-600 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors flex-shrink-0"
+            className="w-9 h-9 rounded-lg bg-navy-700 hover:bg-navy-600 disabled:opacity-30 flex items-center justify-center transition-colors flex-shrink-0"
           >
             <Send className="w-4 h-4 text-white" />
           </button>
         </div>
-        <p className="text-xs text-gray-600 mt-2 text-center">
+        <p className="text-xs text-gray-600 mt-2 text-center hidden sm:block">
           Every answer cites evidence IDs. Click <span className="font-mono">[E:uuid]</span> to jump to the source artefact.
         </p>
       </div>
